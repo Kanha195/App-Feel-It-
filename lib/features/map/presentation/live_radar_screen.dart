@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -10,6 +11,7 @@ import '../../../core/services/location_service.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../models/checkpoint.dart';
 import '../services/checkpoint_validator.dart';
+import '../services/checkpoint_reward_service.dart';
 import '../services/gps_tracker.dart';
 
 class LiveRadarScreen extends StatefulWidget {
@@ -23,11 +25,16 @@ class _LiveRadarScreenState extends State<LiveRadarScreen> {
   final MapController mapController = MapController();
   final GpsTracker tracker = GpsTracker();
   final LocationService locationService = LocationService();
+  final CheckpointRewardService rewardService = CheckpointRewardService();
 
   Position? position;
   String status = 'GPS waiting';
   CheckpointValidation? lastCheckpoint;
   bool tracking = false;
+  final Set<String> gpsReached = {};
+  final Set<String> verifiedRewards = {};
+  final Set<String> pendingVerification = {};
+  final Set<String> attemptedVerification = {};
 
   final checkpoints = const [
     Checkpoint(
@@ -79,7 +86,14 @@ class _LiveRadarScreenState extends State<LiveRadarScreen> {
       },
       onCheckpoint: (validation) {
         if (!mounted) return;
-        setState(() => lastCheckpoint = validation);
+        setState(() {
+          lastCheckpoint = validation;
+          gpsReached.add(validation.checkpoint.id);
+        });
+        final currentPosition = position;
+        if (currentPosition != null) {
+          unawaited(_verifyReward(validation, currentPosition));
+        }
       },
     );
 
@@ -87,6 +101,27 @@ class _LiveRadarScreenState extends State<LiveRadarScreen> {
       tracking = true;
       status = 'GPS tracking active';
     });
+  }
+
+  Future<void> _verifyReward(
+    CheckpointValidation validation,
+    Position currentPosition,
+  ) async {
+    final checkpoint = validation.checkpoint;
+    if (!attemptedVerification.add(checkpoint.id)) return;
+    setState(() => pendingVerification.add(checkpoint.id));
+    try {
+      final verified = await rewardService.verify(
+        checkpoint: checkpoint,
+        position: currentPosition,
+      );
+      if (!mounted) return;
+      if (verified) setState(() => verifiedRewards.add(checkpoint.id));
+    } catch (_) {
+      attemptedVerification.remove(checkpoint.id);
+    } finally {
+      if (mounted) setState(() => pendingVerification.remove(checkpoint.id));
+    }
   }
 
   @override
@@ -163,29 +198,76 @@ class _LiveRadarScreenState extends State<LiveRadarScreen> {
             ),
           ),
         ),
-        if (lastCheckpoint != null)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 20,
-            child: GlassCard(
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(
-                  Icons.workspace_premium,
-                  color: Color(0xFFFFB703),
-                  size: 34,
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 12,
+          height: 136,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: checkpoints.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final checkpoint = checkpoints[index];
+              final verified = verifiedRewards.contains(checkpoint.id);
+              final reached = gpsReached.contains(checkpoint.id);
+              final verifying = pendingVerification.contains(checkpoint.id);
+              final food = checkpoint.rewardId == 'momo-01'
+                  ? 'Steamed momos'
+                  : 'Himalayan milk tea';
+              final state = verified
+                  ? 'Reward verified'
+                  : verifying
+                      ? 'GPS reached · verifying'
+                      : reached
+                          ? 'GPS reached · server pending'
+                          : 'Locked · ride to checkpoint';
+
+              return SizedBox(
+                width: 238,
+                child: GlassCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            verified ? Icons.lock_open : Icons.lock_outline,
+                            color: const Color(0xFFFFB703),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              checkpoint.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      verified
+                          ? Text(food, style: const TextStyle(fontSize: 18))
+                          : ImageFiltered(
+                              imageFilter:
+                                  ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              child: Text(food,
+                                  style: const TextStyle(fontSize: 18)),
+                            ),
+                      const SizedBox(height: 3),
+                      Text(state,
+                          style: Theme.of(context).textTheme.labelSmall),
+                    ],
+                  ),
                 ),
-                title: Text(
-                  lastCheckpoint!.checkpoint.name,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                subtitle: Text(
-                  'Client detected inside ${lastCheckpoint!.checkpoint.unlockRadiusMeters.toStringAsFixed(0)}m reward radius.',
-                ),
-              ),
-            ),
+              );
+            },
           ),
+        ),
       ],
     );
   }

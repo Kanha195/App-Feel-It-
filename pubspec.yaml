@@ -15,6 +15,9 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   flutter_secure_storage: ^9.2.2
+  supabase_flutter: ^2.8.4
+  camera: ^0.11.0+2
+  record: ^6.0.0
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
   intl: ^0.19.0

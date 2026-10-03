@@ -9,18 +9,26 @@ class ModeSwitcher extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(appModeProvider);
+    final compact = MediaQuery.sizeOf(context).width < 560;
 
     return SegmentedButton<AppMode>(
-      segments: const [
+      showSelectedIcon: false,
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
+      ),
+      segments: [
         ButtonSegment(
           value: AppMode.traveler,
-          icon: Icon(Icons.explore),
-          label: Text('Traveler'),
+          icon: const Icon(Icons.explore),
+          label: Text(compact ? 'Ride' : 'Traveler'),
+          tooltip: 'Traveler Mode',
         ),
         ButtonSegment(
           value: AppMode.captain,
-          icon: Icon(Icons.radar),
-          label: Text('Captain'),
+          icon: const Icon(Icons.radar),
+          label: Text(compact ? 'Guide' : 'Captain'),
+          tooltip: 'Captain Mode',
         ),
       ],
       selected: {mode},

@@ -13,7 +13,7 @@ class GarageScreen extends StatefulWidget {
 
 class _GarageScreenState extends State<GarageScreen> {
   final List<Motorcycle> bikes = [
-    Motorcycle(
+    const Motorcycle(
       id: 'demo-1',
       manufacturer: 'Royal Enfield',
       model: 'Himalayan',

@@ -24,3 +24,20 @@ class ThemeModeController extends Notifier<ThemeMode> {
 
 final themeModeProvider =
     NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
+
+class MascotOutfitsController extends Notifier<Map<String, String>> {
+  @override
+  Map<String, String> build() => {
+        'dowie': 'trail',
+        'snowie': 'summit',
+      };
+
+  void equip(String mascot, String outfit) {
+    state = {...state, mascot: outfit};
+  }
+}
+
+final mascotOutfitsProvider =
+    NotifierProvider<MascotOutfitsController, Map<String, String>>(
+  MascotOutfitsController.new,
+);
