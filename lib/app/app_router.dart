@@ -8,6 +8,7 @@ import '../features/garage/presentation/garage_screen.dart';
 import '../features/map/presentation/live_radar_screen.dart';
 import '../features/mechanic/presentation/mechanic_scanner_screen.dart';
 import '../features/mascots/presentation/mascot_home_screen.dart';
+import '../features/mascots/virtual_home_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/tours/presentation/tours_screen.dart';
 import '../shared/providers/app_state.dart';
@@ -34,6 +35,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           ]
         : const <Widget>[
             MascotHomeScreen(),
+            VirtualHomeScreen(),
             LiveRadarScreen(),
             GarageScreen(),
             ToursScreen(),
@@ -48,6 +50,10 @@ class _AppShellState extends ConsumerState<AppShell> {
           ]
         : const <NavigationDestination>[
             NavigationDestination(icon: Icon(Icons.pets), label: 'Home'),
+            NavigationDestination(
+              icon: Icon(Icons.home_work_rounded),
+              label: 'Virtual home',
+            ),
             NavigationDestination(icon: Icon(Icons.radar), label: 'Map'),
             NavigationDestination(
                 icon: Icon(Icons.two_wheeler), label: 'Garage'),
